@@ -1,0 +1,59 @@
+2/13/2014:
+- invocation: flags vs filenames (core.py?)
+- merge invocation data into chart
+  - (completely fix) proper display name
+- test6.py: fix BaseException: VisitorOSSystem::doBinOp found unknown expression
+
+
+Todo:
+- generate correct CFG for fib
+- implement reaching definitions
+
+SYMBOL TABLE:
+
+-List of all variables assigned in a procedure.
+
+FILEFLOW
+
+A reference to a file is either a filename or a file handler
+
+A path may contain both symbols and literals.
+
+Must back track symbols somehow - literally or do constant propogation.
+
+TARGET OUTPUT
+NAME        FLAGS
+toolname
+file_log
+filepath_input
+filepath_mupro
+wf
+start_time
+file_log
+startTime
+file_input          FILE_HANDLER
+lines_input
+sequence
+file_param
+filepath_output_raw FILENAME
+file_output_raw     FILE_HANDLER
+res_ok
+confirmation
+duration
+
+ACCESSED AS ARRAY?
+
+Build symbol table only from assignemtnts
+
+
+interesting things:
+  sys.path.append
+  open
+  .close()
+  os.system
+  os.remove
+
+  build list of files mentioned. then do analysis of how they change per BB.
+
+  Assumptions:
+    Code works
