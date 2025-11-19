@@ -1,5 +1,3 @@
-import copy
-
 from pycparser import c_ast, parse_file
 from pycparser.c_ast import For
 from pycparser.c_ast import While
@@ -24,21 +22,16 @@ class CompoundVisitor(c_ast.NodeVisitor):
                         index = index + 1
 
                     node.block_items[index] = replacement_while
+                elif isinstance(sub_node, DoWhile):
+                    coord = sub_node.coord
+                    stmt = sub_node.stmt
+                    cond = sub_node.cond
 
-
-class DoWhileVisitor(c_ast.NodeVisitor):
-    def visit_While(self, node):
-        print(f"[Coord] -> [File = {node.coord.file}]\n")
-
+                    replacement_while = While(cond, stmt, coord)
+                    node.block_items[index] = replacement_while
 
 
 def run(ast):
-    #Transform all for-loops to while loops
+    #Transform all for-loops and do-while-loops to while-loops
     v = CompoundVisitor()
     v.visit(ast)
-
-    stop = 1
-
-    ast.show()
-    #simplify strings in program
-    #ASk about he utlity of this
