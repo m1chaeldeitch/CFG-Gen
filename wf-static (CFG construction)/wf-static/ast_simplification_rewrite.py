@@ -38,9 +38,9 @@ class IfVisitor(c_ast.NodeVisitor):
 
     def visit_If(self, node):
         node.coord = "EVIDENCE"
-        if hasattr(node, 'iffalse'):
+        if hasattr(node, 'iffalse') and node.iffalse is not None:
             self.visit(node.iffalse)
-        if hasattr(node, 'ifftrue'):
+        if hasattr(node, 'ifftrue') and node.iffalse is not None:
             self.visit(node.ifftrue)
 
 
