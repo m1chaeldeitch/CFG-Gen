@@ -1,4 +1,4 @@
-__author__ = 'Ruben Acuna'
+__author__ = 'Ruben Acuna', 'Michael Deitch'
 
 #imports
 import ast
@@ -56,47 +56,48 @@ def flush_normal_block(return_list, block_next_id, working_block):
     return block_next_id, working_block
 
 #returns a list of basic blocks
-def make_basic_blocks(statements, blockNum):
-
-    if len(statements) > 0 and not isinstance(statements[0], ast.stmt):
-        raise Exception("called make_basic_blocks on something that is not a statement!")
+def make_basic_blocks(block_items, blockNum):
+    #statements will be adapted to be the AST rooted at at 'blockItems' for the function
+    #Todo: Add some error handling for AST
+    # if len(statements) > 0 and not isinstance(statements[0], ast.stmt):
+    #     raise Exception("called make_basic_blocks on something that is not a statement!")
 
     return_list = []
     working_block = BasicBlock(blockNum)
 
-    for statement in statements:
+    for statement in block_items:
         debug_print("Processing " + statement.__class__.__name__ + ":")
 
-        if statement.__class__.__name__ == "Assign" or statement.__class__.__name__ == "AugAssign":
-            #debug_print("  assign|augassign statement on line " + str(statement.lineno) + ", adding to block " + str(blockNum))
+        if statement.__class__.__name__ == "Assignment" or statement.__class__.__name__ == "Decl":
+            #Todo confirm that this is unnecesssary for C
+            # Thoughts are:
+            #   1. This looks to be related to the translation of loops that RA did to use next
+            #   2. Not sure the utility of open
 
+            # debug_print("  assign|augassign statement on line " + str(statement.lineno) + ", adding to block " + str(blockNum))
             #HACK: hooking internal exception in call to X.next() or open().
-            if isinstance(statement.value, ast.Call):
-                if isinstance(statement.value.func, ast.Attribute):
-                    if statement.value.func.attr == "next" and "RA_iter" in statement.value.func.value.id:
-                        blockNum, working_block = flush_normal_block(return_list, blockNum, working_block)
+            # if isinstance(statement.value, ast.Call):
+            #     if isinstance(statement.value.func, ast.Attribute):
+            #         if statement.value.func.attr == "next" and "RA_iter" in statement.value.func.value.id:
+            #             blockNum, working_block = flush_normal_block(return_list, blockNum, working_block)
+            #
+            #             working_block._expt_name = "StopIteration"
+            #             working_block.add(statement)
+            #
+            #             blockNum, working_block = flush_normal_block(return_list, blockNum, working_block)
+            #
+            #             continue
+            #     elif isinstance(statement.value.func, ast.Name):
+            #         if statement.value.func.id == "open":
+            #             blockNum, working_block = flush_normal_block(return_list, blockNum, working_block)
+            #
+            #             working_block._expt_name = "IOError"
+            #             working_block.add(statement)
+            #
+            #             blockNum, working_block = flush_normal_block(return_list, blockNum, working_block)
+            #
+            #             continue
 
-                        working_block._expt_name = "StopIteration"
-                        working_block.add(statement)
-
-                        blockNum, working_block = flush_normal_block(return_list, blockNum, working_block)
-
-                        continue
-                elif isinstance(statement.value.func, ast.Name):
-                    if statement.value.func.id == "open":
-                        blockNum, working_block = flush_normal_block(return_list, blockNum, working_block)
-
-                        working_block._expt_name = "IOError"
-                        working_block.add(statement)
-
-                        blockNum, working_block = flush_normal_block(return_list, blockNum, working_block)
-
-                        continue
-
-            working_block.add(statement)
-
-        elif statement.__class__.__name__ == "Print":
-            #debug_print("  print statement on line " + str(statement.lineno) + ", adding to block " + str(blockNum))
             working_block.add(statement)
 
         #for - see ast_simplification
@@ -115,17 +116,20 @@ def make_basic_blocks(statements, blockNum):
             debug_print("  Capturing if statement expression in block")
             working_block._type = BlockType.CONDITIONAL
             working_block._exit_true = blockNum + 1
-            working_block._expression = statement.test
+            #Todo -- Q: what does expression mean and what is the test value
+            # A: statement.test is looking at the if condition
+            working_block._expression = statement.cond
 
             add_to_basic_block_list(return_list, working_block)
 
             blockNum += 1
 
             debug_print("  Calling make_basic_blocks for if statements")
-            if_list = make_basic_blocks(statement.body, blockNum)
+            if_list = make_basic_blocks(statement.iftrue, blockNum)          #todo, ensure that this is handled correctly by compound
+                                                                             # slightly odd that an iftrue node is a compound...
 
             debug_print("  Calling make_basic_blocks for else statements")
-            else_list = make_basic_blocks(statement.orelse, blockNum + len(if_list))
+            else_list = make_basic_blocks(statement.iffalse, blockNum + len(if_list))
 
             for bb in if_list:
                 add_to_basic_block_list(return_list, bb)
@@ -154,11 +158,8 @@ def make_basic_blocks(statements, blockNum):
             #      body=[Print(dest=None, values=[Str(s='cat')], nl=True), AugAssign(target=Name(id='i', ctx=Store()), op=Add(), value=Num(n=1))],
             #      orelse=[])
 
-            while_ss = statement.body
-            while_e = statement.test
-
-            if statement.orelse:
-                raise Exception("I just don't know what went wrong.")
+            while_ss = statement.stmt.block_items  #While block statements
+            while_e = statement.cond               #Condition check for the while statement
 
             blockNum, working_block = flush_normal_block(return_list, blockNum, working_block)
 
