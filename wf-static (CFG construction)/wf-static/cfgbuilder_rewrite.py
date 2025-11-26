@@ -74,7 +74,7 @@ def make_basic_blocks(block_items, blockNum):
             #   1. This looks to be related to the translation of loops that RA did to use next
             #   2. Not sure the utility of open
 
-            # debug_print("  assign|augassign statement on line " + str(statement.lineno) + ", adding to block " + str(blockNum))
+            # debug_print("  assign|augassign statement on line " + str(statement.coord.line) + ", adding to block " + str(blockNum))
             #HACK: hooking internal exception in call to X.next() or open().
             # if isinstance(statement.value, ast.Call):
             #     if isinstance(statement.value.func, ast.Attribute):
@@ -108,7 +108,7 @@ def make_basic_blocks(block_items, blockNum):
             #                body=[Print(dest=None, values=[Str(s='num is 2')], nl=True)],
             #                orelse=[])
 
-            debug_print("  if statement on line " + str(statement.lineno))
+            debug_print("  if statement on line " + str(statement.coord.line))
 
             blockNum, working_block = flush_normal_block(return_list, blockNum, working_block)
 
@@ -213,7 +213,7 @@ def make_basic_blocks(block_items, blockNum):
             blockNum = while_blockNum + while_count
 
         elif statement.__class__.__name__ == "Import":
-            #debug_print("  import statement on line " + str(statement.lineno) + ", adding to block " + str(blockNum))
+            #debug_print("  import statement on line " + str(statement.coord.line) + ", adding to block " + str(blockNum))
             working_block.add(statement)
 
         #Raise(expr? type, expr? inst, expr? tback)
@@ -227,7 +227,7 @@ def make_basic_blocks(block_items, blockNum):
             #      inst=None,
             #      tback=None)
 
-            debug_print("  raise statement on line " + str(statement.lineno))
+            debug_print("  raise statement on line " + str(statement.coord.line))
 
             if statement.inst or statement.tback:
                 raise Exception("Raise: unexpected input.")
@@ -305,13 +305,23 @@ def make_basic_blocks(block_items, blockNum):
             working_block.add(statement)
             #TODO: finish
 
+        elif statement.__class__.__name__ == "BinaryOp":
+            working_block.add(statement)
+
+        elif statement.__class__.__name__ == "EmptyStatement":
+            working_block.add(statement)
+
+        elif statement.__class__.__name__ == "FuncCall":
+            #TODO: ? Not sure if this is how it should be handled, but I remember something about ignoring function
+            # calls for now and dealing with associating the different CFGs through function calls?
+            working_block.add(statement)
         #Pass
         elif statement.__class__.__name__ == "Pass":
             working_block.add(statement)
 
         #Break
         elif statement.__class__.__name__ == "Break":
-            #debug_print("  break statement on line " + str(statement.lineno))
+            #debug_print("  break statement on line " + str(statement.coord.line))
 
             #// Captures the break in a block
             working_block._id = blockNum
@@ -328,7 +338,7 @@ def make_basic_blocks(block_items, blockNum):
 
         #Continue
         elif statement.__class__.__name__ == "Continue":
-            #debug_print("  break statement on line " + str(statement.lineno))
+            #debug_print("  break statement on line " + str(statement.coord.line))
 
             #// Captures the break in a block
             working_block._id = blockNum
@@ -379,7 +389,7 @@ def print_basic_blocks(input):
                     debug_print("    ERROR: Block has no statements.")
                 else:
                     for s in local_ss:
-                        debug_print("    type " + s.__class__.__name__+" from line " + str(s.lineno))
+                        debug_print("    type " + s.__class__.__name__+" from line " + str(s.coord.line))
             elif bb._type == ExitType.UNSET:
                 debug_print("    type not set.")
             else:
