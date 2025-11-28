@@ -308,6 +308,10 @@ def make_basic_blocks(block_items, blockNum):
         elif statement.__class__.__name__ == "BinaryOp":
             working_block.add(statement)
 
+        elif statement.__class__.__name__ == "UnaryOp":
+            #Example: "variable_name--;"
+            working_block.add(statement)
+
         elif statement.__class__.__name__ == "EmptyStatement":
             working_block.add(statement)
 
@@ -335,6 +339,53 @@ def make_basic_blocks(block_items, blockNum):
 
             #Create a new the working_block with new parameters
             working_block = BasicBlock(blockNum)
+
+        elif statement.__class__.__name__ == "Compound":
+            x = "stop here"
+            print("Further processing required...");
+
+            ### EXCERPTED FROM "IF" CASE START
+            debug_print("  if statement on line " + str(statement.coord.line))
+
+            blockNum, working_block = flush_normal_block(return_list, blockNum, working_block)
+
+            # captures the if statement evaluating expression in a block
+            # debug_print("  Capturing if statement expression in block")
+            # working_block._type = BlockType.CONDITIONAL
+            # working_block._exit_true = blockNum + 1
+            # Todo -- Q: what does expression mean and what is the test value
+            # A: statement.test is looking at the if condition
+            # working_block._expression = statement.cond
+            #
+            # add_to_basic_block_list(return_list, working_block)
+            #
+            # blockNum += 1
+            #Todo evaluate that above commented out portion is ok to do this.
+            # Reasoning: For if statements, the "if" portion is separated from the "iftrue" and "iffalse"
+            # all of which are in different blocks. Compounds though aren't really a the same in my opinion and
+            # don't really need that extra layer? The only time they are found inside of a traversal is when looking
+            # at certain edge cases, otherwise they're typically encompassed in a single statement. But compounds
+            # in the edge cases act more as a collection of nodes? There's also no conditional checks which makes it
+            # even less of a fit for this specific mold...
+
+            debug_print("  Calling make_basic_blocks for if statements")
+            stmt_list = make_basic_blocks(statement.block_items,
+                                        blockNum)
+            for bb in stmt_list:
+                add_to_basic_block_list(return_list, bb)
+
+            working_block._exit_false = ExitType.HANGING_BLOCK_EXIT #because no else list, always will default to this
+            blockNum += len(stmt_list)
+
+            # prepare everything to link to the block we are just about to create
+            replace_exits(return_list, ExitType.HANGING_BLOCK_EXIT, blockNum)
+
+            # recreate the working_block with new parameters
+            working_block = BasicBlock(blockNum)
+            working_block._exit_true = blockNum + 1
+            ### EXCERPTED FROM "IF" CASE END
+
+
 
         #Continue
         elif statement.__class__.__name__ == "Continue":
