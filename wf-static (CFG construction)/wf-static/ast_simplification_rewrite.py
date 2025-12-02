@@ -1,7 +1,9 @@
 from pycparser import c_ast, parse_file
-from pycparser.c_ast import For
+from pycparser.ast_transforms import fix_switch_cases
+from pycparser.c_ast import For, Switch, Case, Default, If, BinaryOp, Compound, Return, Break
 from pycparser.c_ast import While
 from pycparser.c_ast import DoWhile
+from pycparser import ast_transforms
 
 class CompoundVisitor(c_ast.NodeVisitor):
     def visit_Compound(self, node):
@@ -68,7 +70,6 @@ class CompoundVisitor(c_ast.NodeVisitor):
 class IfVisitor(c_ast.NodeVisitor):
 
     def visit_If(self, node):
-        node.coord = "EVIDENCE"
         if hasattr(node, 'iffalse') and node.iffalse is not None:
             self.visit(node.iffalse)
         if hasattr(node, 'ifftrue') and node.iffalse is not None:
@@ -81,6 +82,86 @@ class ForVisitor(c_ast.NodeVisitor):
         self.visit(node.stmt)
 
 
+
+class SwitchVisitor(c_ast.NodeVisitor):
+    def generic_visit(self, node):
+        for _, child in node.children():
+            if isinstance(child, c_ast.Switch):
+                print("Found a switch node")
+                #Fix nesting issues of switch statements using built in method, then translate to If
+                child = fix_switch_cases(child)
+                child = self._translate_to_if(child)
+
+            if child is not None:
+                self.visit(child)
+
+    def _create_false(self, case, parent_switch, index):
+        #TODO should defaults be handled here too? -- yes REVISIT LATER
+
+        if isinstance(case, Case):
+            if index + 1 > len(parent_switch.stmt.block_items):
+                return None
+
+            cond = BinaryOp('==',parent_switch.cond, case.expr)            #previously index + 1
+            iftrue_next_case = Compound(case.stmts)
+            iffalse_next_case = self._create_false(parent_switch.stmt.block_items[index + 1], parent_switch, index + 1)
+
+            return If(cond, iftrue_next_case, iffalse_next_case)
+        elif isinstance(case, Default):
+            x = "stop"
+
+    def _translate_to_if(self, switch_node):
+        handled_next = 0
+        for index, child in enumerate(switch_node.stmt.block_items):
+            #Handled next means that the last iteration handled this child already
+            if handled_next > 0 :
+                handled_next = handled_next - 1
+                continue
+
+            #Treat cases right before default different
+            # All cases with a default right after will look like a branch new if-else, with the else having the default
+            # statements
+            if (isinstance(child, Case)
+                and index + 1 < len(switch_node.stmt.block_items)
+                and isinstance(switch_node.stmt.block_items[index + 1], Default)):
+                    cond = BinaryOp('==', switch_node.cond, child.expr)
+                    iftrue = Compound(child.stmts)
+                    iffalse = Compound(switch_node.stmt.block_items[index + 1].stmts)
+                    replacement = If(cond, iftrue, iffalse)
+                    child = replacement
+                    switch_node.stmt.block_items[index] = child #todo check if this is necessary
+                    handled_next = handled_next + 1
+
+            #For when the child case is not a direct predecessor of a default node
+            # A return inside  the statements implies an if-else-if structure
+            # No return inside  the statements implies an if structure only
+            elif isinstance(child, Case):
+                return_present = False
+
+                for stmt in child.stmts:
+                    if isinstance(stmt, Return) or isinstance(stmt, Break):
+                        return_present = True
+
+                if return_present and switch_node.stmt.block_items[index + 1].stmts is not None:
+                    cond = BinaryOp('==', switch_node.cond, child.expr)
+                    iftrue = Compound(child.stmts)
+                    iffalse = self._create_false(switch_node.stmt.block_items[index + 1], switch_node, index)
+                    replacement = If(cond, iftrue, iffalse)
+                    child = replacement
+                    switch_node.stmt.block_items[index] = child  # todo check if this is necessary
+                    handled_next = handled_next + 1
+
+                elif return_present and switch_node.stmt.block_items[index + 1].stmts is None:   #Todo better way to check if the index exists probably
+                    cond = BinaryOp('==', switch_node.cond, child.expr)
+                    iftrue = Compound(child.stmts)
+                    iffalse = None
+                    replacement = If(cond, iftrue, iffalse)
+                    child = replacement
+                    switch_node.stmt.block_items[index] = child  # todo check if this is necessary
+            elif isinstance(child, Default):
+
+        return switch_node
+
 ## Testing purposes so that I can identify with certainty that even the most nested 'for' nodes
 ## have been converted -- saves time having to look through the debugger
 def find_fors(ast):
@@ -89,9 +170,11 @@ def find_fors(ast):
     v = ForVisitor()
     v.visit(ast)
     print("===================")
-
-
 def run(ast):
+    #Fix all of the switch cases before any sort of block gen
+    v = SwitchVisitor()
+    v.visit(ast)
+
     #Transform all for-loops and do-while-loops to while-loops
     v = CompoundVisitor()
     v.visit(ast)
