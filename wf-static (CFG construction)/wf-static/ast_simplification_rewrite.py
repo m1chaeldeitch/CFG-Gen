@@ -85,12 +85,15 @@ class ForVisitor(c_ast.NodeVisitor):
 
 class SwitchVisitor(c_ast.NodeVisitor):
     def generic_visit(self, node):
-        for _, child in node.children():
+        for index, child in node.children():
             if isinstance(child, c_ast.Switch):
                 print("Found a switch node")
                 #Fix nesting issues of switch statements using built in method, then translate to If
                 child = fix_switch_cases(child)
                 child = self._translate_to_if(child)
+                actual_index = int(index.split('[')[1].split(']')[0])
+                node.block_items[actual_index] = child
+                x = "stop"
 
             if child is not None:
                 self.visit(child)
@@ -163,11 +166,47 @@ class SwitchVisitor(c_ast.NodeVisitor):
                 prev_case = case
                 all_if_blocks.append(translated_if)
 
-        x = 'stop'
-        generator = c_generator.CGenerator()
-        new_code = generator.visit(all_if_blocks[0])
-        print(f"\n\n\n{new_code}\n\n\n")
-        x = 'stop again'
+        #Handling default case -- if there is a default,  add it to the if-tree as an iffalse always, where iffalse is just a compound of statements
+        for default_index, default in enumerate(switch_children):
+            if isinstance(default, c_ast.Default):
+                termination, t_type = _has_break_or_return(default)
+
+                if termination is False:  # If default !!!!has break/return
+                    # Add all the statements from the current case
+                    all_true_stmts = default.stmts.copy()
+
+                    # For every following statement in each block until a break is found:
+                    break_found = False
+                    for child_index, child in enumerate(switch_children):
+                        if break_found:
+                            break
+                        if child_index > default_index:  # For every case AFTER the current case
+                            for child_stmt in child.stmts:
+                                if isinstance(child_stmt,
+                                              Return):  # Returns considered a break, but still add them to stmts
+                                    break_found = True
+                                    all_true_stmts.append(child_stmt)
+                                    break
+                                elif isinstance(child_stmt, Break):
+                                    break_found = True
+                                    break
+                                else:
+                                    all_true_stmts.append(child_stmt)
+
+                    iftrue = Compound(all_true_stmts)
+
+                elif termination is True:
+                    # Add all the statements from the current case
+                    all_true_stmts = default.stmts.copy()
+                    iftrue = Compound(all_true_stmts)
+
+                if prev_case is not None:
+                    prev_if.iffalse = iftrue
+
+        #new_code = generator.visit(all_if_blocks[0])
+        #print(f"\n\n\n{new_code}\n\n\n")
+        #x = 'stop again'
+        return all_if_blocks[0]
 
 
 def _has_break_or_return(case):
