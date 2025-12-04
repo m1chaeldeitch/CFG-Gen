@@ -36,7 +36,8 @@ def build_cfgs(file_list):
 
                 #Graph generation
                 func_name = func_ast.decl.name
-                graph = __build_and_display_graph(block_list, 3, func_name, file)
+                file_name = file.split('/')[-1] #TODO this only  works when the student submissions is in a subdirectory at the same level as this file.
+                graph = __build_and_display_graph(block_list, 3, func_name, file_name)
 
                 #Graph association
                 cfg_map[str(func_name + "_" + file)] = graph
@@ -111,6 +112,6 @@ def __build_and_display_graph(bblist, limit_lines, func_name, file_name):
 if __name__ == "__main__":
     ## Example usage
 
-    file_list = ["switch_testing.c", "test_goto.c"]
+    file_list = ["ctestfiles/switch_testing.c", "ctestfiles/test_goto.c"]
     graph_mapping = build_cfgs(file_list)
     x = "stop"

@@ -114,7 +114,7 @@ def make_basic_blocks(block_items, blockNum):
             #                body=[Print(dest=None, values=[Str(s='num is 2')], nl=True)],
             #                orelse=[])
 
-            debug_print("  if statement on line " + str(statement.coord.line))
+            #debug_print("  if statement on line " + str(statement.coord.line))
 
             blockNum, working_block = flush_normal_block(return_list, blockNum, working_block)
 
@@ -359,7 +359,7 @@ def make_basic_blocks(block_items, blockNum):
             print("Further processing required...");
 
             ### EXCERPTED FROM "IF" CASE START
-            debug_print("  if statement on line " + str(statement.coord.line))
+            #debug_print("  if statement on line " + str(statement.coord.line))
 
             blockNum, working_block = flush_normal_block(return_list, blockNum, working_block)
 
@@ -423,7 +423,7 @@ def make_basic_blocks(block_items, blockNum):
             # to avoid confunsion. Currently just shows the statements of the bb, but not the label itself
 
 
-            debug_print("Label statement on line " + str(statement.coord.line))
+            #debug_print("Label statement on line " + str(statement.coord.line))
 
             blockNum, working_block = flush_normal_block(return_list, blockNum, working_block)
             debug_print("  Calling make_basic_blocks for all label statements")
@@ -469,7 +469,7 @@ def make_basic_blocks(block_items, blockNum):
             working_block._exit_true = blockNum + 1
 
         elif statement.__class__.__name__ == "Goto":
-            debug_print("  Goto statement on line " + str(statement.coord.line))
+            #debug_print("  Goto statement on line " + str(statement.coord.line))
             blockNum, working_block = flush_normal_block(return_list, blockNum, working_block)
 
             # captures the goto in a single block
