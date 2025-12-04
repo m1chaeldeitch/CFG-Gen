@@ -1,11 +1,14 @@
 __author__ = 'Ruben Acuna', 'Michael Deitch'
 
 #imports
-import ast
 from cfg_structures import *
 
 #settings
 DEBUG_PRINT = False
+
+#mapping for second pass
+# label_dict[label_name] = block_num
+label_dict = {}
 
 #functions
 def debug_print(s):
@@ -64,8 +67,11 @@ def make_basic_blocks(block_items, blockNum):
 
     return_list = []
     working_block = BasicBlock(blockNum)
-
-    for statement in block_items:
+    skip_num = 0
+    for index, statement in enumerate(block_items):
+        if (skip_num > 0):
+            skip_num -= 1
+            continue
         debug_print("Processing " + statement.__class__.__name__ + ":")
 
         if statement.__class__.__name__ == "Assignment" or statement.__class__.__name__ == "Decl":
@@ -129,7 +135,10 @@ def make_basic_blocks(block_items, blockNum):
                                                                              # slightly odd that an iftrue node is a compound...
 
             debug_print("  Calling make_basic_blocks for else statements")
-            else_list = make_basic_blocks(statement.iffalse, blockNum + len(if_list))
+            if statement.iffalse is not None:
+                else_list = make_basic_blocks(statement.iffalse, blockNum + len(if_list))
+            else:
+                else_list = []
 
             for bb in if_list:
                 add_to_basic_block_list(return_list, bb)
@@ -318,6 +327,11 @@ def make_basic_blocks(block_items, blockNum):
         elif statement.__class__.__name__ == "FuncCall":
             #TODO: ? Not sure if this is how it should be handled, but I remember something about ignoring function
             # calls for now and dealing with associating the different CFGs through function calls?
+            # Maybe a tag -- find out where it leads
+            # Some way to know that the block contains a function call
+            # 2 passes for identifying edges between goto & labels
+            # **Jumping to label or variable -- maybe handle labels first then deal with variables later (or raise exception)
+            # need a data structure to associated statements with a label
             working_block.add(statement)
         #Pass
         elif statement.__class__.__name__ == "Pass":
@@ -404,6 +418,67 @@ def make_basic_blocks(block_items, blockNum):
             #Create a new the working_block with new parameters
             working_block = BasicBlock(blockNum)
 
+        elif statement.__class__.__name__ == "Label":
+            #TODO Maybe do something here to make the output graph png show the label more clearly
+            # to avoid confunsion. Currently just shows the statements of the bb, but not the label itself
+
+
+            debug_print("Label statement on line " + str(statement.coord.line))
+
+            blockNum, working_block = flush_normal_block(return_list, blockNum, working_block)
+            debug_print("  Calling make_basic_blocks for all label statements")
+            label_dict[statement.name] = blockNum
+            allowable_label_stmts = []
+
+            #obtain all statements within the label
+            #list will end upon seeing
+            #   - labels (do not include)
+            #   - goto   (do not include)
+            #   - if     (do not include)
+            #   - return (include)
+            # also make sure to increment skip_num for each statement added
+
+            for i in range (index, len(block_items)):
+                after_label_stmt = block_items[i]
+
+
+                disallowed_types = ["Label", "Goto", "If"]
+                if after_label_stmt.__class__.__name__ == "Return":
+                    allowable_label_stmts.append(after_label_stmt)
+                    skip_num += 1
+                    break
+                elif after_label_stmt.__class__.__name__ in disallowed_types:
+                    break
+                else:
+                    allowable_label_stmts.append(after_label_stmt)
+                    skip_num += 1
+
+            stmt_list = make_basic_blocks(allowable_label_stmts, blockNum)
+
+            for bb in stmt_list:
+                add_to_basic_block_list(return_list, bb)
+
+            working_block._exit_false = ExitType.HANGING_BLOCK_EXIT  # because no else list, always will default to this
+            blockNum += len(stmt_list)
+
+            # prepare everything to link to the block we are just about to create
+            replace_exits(return_list, ExitType.HANGING_BLOCK_EXIT, blockNum)
+
+            # recreate the working_block with new parameters
+            working_block = BasicBlock(blockNum)
+            working_block._exit_true = blockNum + 1
+
+        elif statement.__class__.__name__ == "Goto":
+            debug_print("  Goto statement on line " + str(statement.coord.line))
+            blockNum, working_block = flush_normal_block(return_list, blockNum, working_block)
+
+            # captures the goto in a single block
+            working_block.add(statement)
+            add_to_basic_block_list(return_list, working_block)
+
+            # create a new working block
+            blockNum += 1
+            working_block = BasicBlock(blockNum)
         else:
             pass
             #raise Exception("encountered unknown block type: " + statement.__class__.__name__ + " " + ast.dump(statement))
@@ -414,9 +489,22 @@ def make_basic_blocks(block_items, blockNum):
         add_to_basic_block_list(return_list, working_block)
         debug_print("Exiting, added working_block to list for block " + str(working_block._id))
     else:
-        replace_exits(return_list, blockNum, ExitType.HANGING_BLOCK_EXIT)
+        #replace_exits(return_list, blockNum, ExitType.HANGING_BLOCK_EXIT)
+        print("Doing nothing as a fix to see")
 
     #??? otherwise we need to put -2s back?
+    #Looping back around to adjust the exit_true according to the known labels
+    for block in return_list:
+        for stmt in block._statements:
+            if stmt.__class__.__name__ == "Goto":
+                label_name = stmt.name
+
+                if not label_dict.keys().__contains__(label_name):
+                    raise Exception(f"Label {label_name} has no associated block number. This is likely from a \"goto\" "
+                                    f"statement in which the destination is a variable name. This is unsupported.")
+                block_num = label_dict[label_name]
+                block._exit_true = block_num
+                block._exit_false = block_num
 
     return return_list
 
@@ -440,7 +528,8 @@ def print_basic_blocks(input):
                     debug_print("    ERROR: Block has no statements.")
                 else:
                     for s in local_ss:
-                        debug_print("    type " + s.__class__.__name__+" from line " + str(s.coord.line))
+                        if hasattr(s, "coord"):
+                            debug_print("    type " + s.__class__.__name__+" from line " + str(s.coord.line))
             elif bb._type == ExitType.UNSET:
                 debug_print("    type not set.")
             else:
