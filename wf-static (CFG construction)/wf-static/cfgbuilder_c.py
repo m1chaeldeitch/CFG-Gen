@@ -490,10 +490,14 @@ def make_basic_blocks(block_items, blockNum):
         debug_print("Exiting, added working_block to list for block " + str(working_block._id))
     else:
         #replace_exits(return_list, blockNum, ExitType.HANGING_BLOCK_EXIT)
-        print("Doing nothing as a fix to see")
+        print("Doing nothing as a fix to see") #We want to avoid creating more pointers to -2, and want to preserve an exit node instead.
 
     #??? otherwise we need to put -2s back?
     #Looping back around to adjust the exit_true according to the known labels
+    #Essentially in the "first pass" we are looking at labels (see above if-else tree) and associating a block to a label
+    #Then for every Goto statement, we are checking that the name it's jumping to is a label and not a variable name.
+    #We do this by collecting the name to which the goto is "going to" and checking if there is a block associated with that name
+    #A block associated with the name would imply that the Goto is "going to" a label, if not found -- implies that goto is "going to" a variable name.
     for block in return_list:
         for stmt in block._statements:
             if stmt.__class__.__name__ == "Goto":

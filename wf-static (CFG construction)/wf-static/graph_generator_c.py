@@ -13,6 +13,7 @@ import ast_simplification_c
 import cfgbuilder_c
 
 import os
+import sys
 import networkx as nx
 import webbrowser
 
@@ -22,9 +23,12 @@ def build_cfgs(file_list):
 
     for file in file_list:
         #Obtain AST for the file + transform switch -> if + transform for/dowhile -> while
+        #https://eli.thegreenplace.net/2015/on-parsing-c-type-declarations-and-fake-headers/
+        # TODO remove hard coded path, see how to add this to repo
+        # for now: Must change line 33 to include a valid local path to pycparser source code available here: https://github.com/eliben/pycparser
         file_ast = pycparser.parse_file(file, use_cpp=True,
                                             cpp_path='gcc',
-                                            cpp_args=['-E',  r'-I/home/mike-jones/repos/pycparser/utils/fake_libc_include']) #TODO remove hard coded path, see how to add this to repo
+                                            cpp_args=['-E',  r'-I/local/path/to/pycparser/utils/fake_libc_include'])
         ast_simplification_c.run(file_ast)
 
         #Build the cfg for each function def in the current file
@@ -32,7 +36,7 @@ def build_cfgs(file_list):
             if isinstance(func_ast, pycparser.c_ast.FuncDef):
                 #Block generation
                 block_list = cfgbuilder_c.make_basic_blocks(func_ast, 0)
-                cfgbuilder_c.replace_exits(block_list, -2, len(block_list))
+                cfgbuilder_c.replace_exits(block_list, -2, len(block_list)) #Essentially converts the statements of the last working block to point to exit instead of -2
 
                 #Graph generation
                 func_name = func_ast.decl.name
@@ -112,6 +116,6 @@ def __build_and_display_graph(bblist, limit_lines, func_name, file_name):
 if __name__ == "__main__":
     ## Example usage
 
-    file_list = ["ctestfiles/switch_testing.c", "ctestfiles/test_goto.c"]
+    file_list = ["ctestfiles/switch_testing.c"]
     graph_mapping = build_cfgs(file_list)
     x = "stop"

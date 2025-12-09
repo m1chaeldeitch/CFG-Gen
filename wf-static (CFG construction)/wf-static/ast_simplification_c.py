@@ -84,6 +84,19 @@ class ForVisitor(c_ast.NodeVisitor):
 
 
 class SwitchVisitor(c_ast.NodeVisitor):
+    '''
+    Generic_visit was overrridden instead of following the regular visitor pattern.
+    This was an intentional workaround due to some things that come up when using pycparser's visitor pattern.
+    If we used the visitor pattern for switches for example, we'd:
+    1. Come across each switch statment (good)
+    2. Be unable to modify that switch statement in place (bad)
+
+    So instead if we override the generic_visit, which will touch every node, and then look at each node's children,
+    we can see if the child node of the current node is a switch. Then we can modify that child node directly.
+
+    Basically we have to look one layer above where we are wanting to edit. So if we're looking to modify switch
+    nodes, we have to stop at the parent to modify its child switch node.
+    '''
     def generic_visit(self, node):
         for index, child in node.children():
             if isinstance(child, c_ast.Switch):
