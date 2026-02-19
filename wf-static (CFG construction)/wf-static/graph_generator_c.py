@@ -17,6 +17,8 @@ import sys
 import networkx as nx
 import webbrowser
 
+
+
 def build_cfgs(file_list):
     #cfg_map[function_name_file_name] = graph_object
     cfg_map = {}
@@ -33,7 +35,15 @@ def build_cfgs(file_list):
 
         #Build the cfg for each function def in the current file
         func_cfg_mappings = {}
+        if '/' in file:
+            index = file.rfind('/')
+            file_name = file[index + 1:]
+            pass
+        else:
+            file_name = file
+
         for func_ast in file_ast.ext:
+
             if isinstance(func_ast, pycparser.c_ast.FuncDef):
                 #Block generation
                 block_list = cfgbuilder_c.make_basic_blocks(func_ast, 0)
@@ -41,7 +51,6 @@ def build_cfgs(file_list):
 
                 #Graph generation
                 func_name = func_ast.decl.name
-                file_name = file.split('/')[-1] #TODO this only  works when the student submissions is in a subdirectory at the same level as this file.
                 graph = __build_and_display_graph(block_list, 3, func_name, file_name)
 
                 #Graph association
@@ -50,9 +59,11 @@ def build_cfgs(file_list):
                 func_cfg_mappings[func_name] = graph
                 #cfg_map[str(func_name + "_" + file)] = graph
 
-        cfg_map[file] = func_cfg_mappings
+        cfg_map[file_name] = func_cfg_mappings
 
     return cfg_map
+
+
 def __build_and_display_graph(bblist, limit_lines, func_name, file_name):
     G = nx.DiGraph()
     generator = c_generator.CGenerator()
@@ -120,8 +131,8 @@ def __build_and_display_graph(bblist, limit_lines, func_name, file_name):
 
 
 if __name__ == "__main__":
-    ## Example usage
+    ## Example usage -- commented out to avoid accidental use a live autograder ---
 
-    file_list = ["ctestfiles/switch_testing.c"]
+    file_list = ["ctestfiles/switch_testing.c", "ctestfiles/test_goto.c"]
     graph_mapping = build_cfgs(file_list)
     x = "stop"
