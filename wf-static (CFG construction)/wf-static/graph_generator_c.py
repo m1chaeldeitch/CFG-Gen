@@ -1,9 +1,16 @@
-__author__ = 'Michael'
+__author__ = 'Michael Deitch, Ruben Acuna'
 
 '''
 Goal of the file:
-Given a list of source files, generate a list of CFGs
-Each CFG in the list is a CFG generated from a singular function in the list of source files
+Given a list of source files, generate a dict of dicts representing each files' CFG's
+
+Input: list of source ".c" files
+Output: Dict of dicts, following the general form:
+        {"submission_file.c" -> {"func_1" -> CFG_OBJECT}, {"func_2" -> CFG_OBJECT2}},
+         "submission_fileb.c -> {...}}
+         
+Each file has a collection of dicts associated with it, where each of those dicts contain
+a mapping of the function name in the file, and the corresponding CFG for that function.
 '''
 
 #Imports
@@ -11,12 +18,9 @@ import pycparser
 from pycparser import c_generator
 import ast_simplification_c
 import cfgbuilder_c
-
 import os
-import sys
 import networkx as nx
 import webbrowser
-
 
 
 def build_cfgs(file_list):
@@ -26,14 +30,18 @@ def build_cfgs(file_list):
     for file in file_list:
         #Obtain AST for the file + transform switch -> if + transform for/dowhile -> while
         #https://eli.thegreenplace.net/2015/on-parsing-c-type-declarations-and-fake-headers/
-        # TODO remove hard coded path, see how to add this to repo
-        # for now: Must change line 33 to include a valid local path to pycparser source code available here: https://github.com/eliben/pycparser
+        # Line 30-32 deal with headers that students will use. Including the fake_libc_include
+        # is the way to handle headers. Read more here: https://deepwiki.com/eliben/pycparser/4-usage-and-examples
+        # There might be a way to handle installing this via the install script (?). Read more here: https://pypi.org/project/pycparser-fake-libc/
         file_ast = pycparser.parse_file(file, use_cpp=True,
                                             cpp_path='gcc',
-                                            cpp_args=['-E',  r'-I/local/path/to/pycparser/utils/fake_libc_include'])
+                                            cpp_args=['-E',  r'-Ifake_libc_include'])
+
+        #This is where the actual simplification described above happens (transforming switch -> if
+        # & transform for/dowhile -> while)
         ast_simplification_c.run(file_ast)
 
-        #Build the cfg for each function def in the current file
+        #Helps create a cleaner mapping/return object in the end
         func_cfg_mappings = {}
         if '/' in file:
             index = file.rfind('/')
@@ -42,6 +50,7 @@ def build_cfgs(file_list):
         else:
             file_name = file
 
+        #Build the cfg for each function def in the current file
         for func_ast in file_ast.ext:
 
             if isinstance(func_ast, pycparser.c_ast.FuncDef):
@@ -130,9 +139,9 @@ def __build_and_display_graph(bblist, limit_lines, func_name, file_name):
     return G
 
 
-if __name__ == "__main__":
-    ## Example usage -- commented out to avoid accidental use a live autograder ---
-
-    file_list = ["ctestfiles/switch_testing.c", "ctestfiles/test_goto.c"]
-    graph_mapping = build_cfgs(file_list)
-    x = "stop"
+# if __name__ == "__main__":
+#     ## Example usage -- commented out to avoid accidental use a live autograder ---
+#
+#     file_list = ["ctestfiles/switch_testing.c", "ctestfiles/test_goto.c"]
+#     graph_mapping = build_cfgs(file_list)
+#     x = "stop"
