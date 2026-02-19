@@ -32,6 +32,7 @@ def build_cfgs(file_list):
         ast_simplification_c.run(file_ast)
 
         #Build the cfg for each function def in the current file
+        func_cfg_mappings = {}
         for func_ast in file_ast.ext:
             if isinstance(func_ast, pycparser.c_ast.FuncDef):
                 #Block generation
@@ -44,7 +45,12 @@ def build_cfgs(file_list):
                 graph = __build_and_display_graph(block_list, 3, func_name, file_name)
 
                 #Graph association
-                cfg_map[str(func_name + "_" + file)] = graph
+                # First bind each function name to its graph object as a dict
+                # Then bind the file name to all of the {function_name->graph} dicts
+                func_cfg_mappings[func_name] = graph
+                #cfg_map[str(func_name + "_" + file)] = graph
+
+        cfg_map[file] = func_cfg_mappings
 
     return cfg_map
 def __build_and_display_graph(bblist, limit_lines, func_name, file_name):
