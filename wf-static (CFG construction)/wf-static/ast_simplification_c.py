@@ -1,9 +1,29 @@
-from pycparser import c_ast, parse_file, c_generator
+__author__ = 'Michael Deitch, Ruben Acuna'
+'''
+Goal of the file:
+In order to do processing on the graph structure of a given function, you have to essentially deal
+with every type of node that can possibly be seen in the code (look at cfgbuilder_c for context).
+
+Each node requires some different approach for generating the basic blocks/ extended basic blocks/ CFG,
+so instead of making life harder and writing new algorithms for all the different types of nodes, it
+was instead chosen to convert nodes of similar types to one common node. This way, similar nodes are pre-processed
+into a common node, and then only one algorithm is needed to process it.
+
+Example: for, while, dowhile -- they are all looping constructs/nodes, but might need slightly different algoirthms
+for generating basic blocks/extended basic blocks. So, we convert all of the for and do-whiles into whiles, and now
+we only need to handle while nodes.
+
+*Notice*
+This file is more confusing than it likely needs to be. Pycparser doesn't allow you to modify the node in place,
+so if you want to visit a node, you really have to visit the parent of that node, then modify the desired child node.
+My approach early on was weird, and I don't remember if I removed unnecessary things, but regardless, it is all here.
+'''
+
+from pycparser import c_ast
 from pycparser.ast_transforms import fix_switch_cases
-from pycparser.c_ast import For, Switch, Case, Default, If, BinaryOp, Compound, Return, Break
+from pycparser.c_ast import For, If, BinaryOp, Compound, Return, Break
 from pycparser.c_ast import While
 from pycparser.c_ast import DoWhile
-from pycparser import ast_transforms
 
 class CompoundVisitor(c_ast.NodeVisitor):
     def visit_Compound(self, node):

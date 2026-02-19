@@ -1,4 +1,4 @@
-__author__ = 'Michael Deitch, Ruben Acuna'
+__author__ = 'Ruben Acuna, Michael Deitch'
 
 '''
 Goal of the file:

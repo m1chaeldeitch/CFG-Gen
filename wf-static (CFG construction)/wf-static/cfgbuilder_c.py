@@ -1,5 +1,11 @@
 __author__ = 'Ruben Acuna', 'Michael Deitch'
 
+'''
+Goal of the file:
+Produce the basic blocks of a function, which will later be used
+to assemble a graph structure.
+'''
+
 #imports
 from cfg_structures import *
 
