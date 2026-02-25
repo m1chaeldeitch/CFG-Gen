@@ -1,0 +1,58 @@
+
+#DFS (searching for function call with a specific name)
+
+#We have all of the basic blocks for some function (todo return this with some function in graph_generator)
+#Within each basic block are statements (there won't be if-nodes or for-nodes)
+#   For each statement of each function, identify if there is a function call = the input function call
+#   Obtain the basicblock ID that the funccall resides in
+
+
+# In the graph object, each of the nodes (basic blocks) are represented by an ID which contains their block number
+# By performing a DFS on that node within the graph, we can record the nodes that are visited after the funccall
+# Having this list of visited blocks, we can then traverse through the blocks for the input function
+
+
+## TODO There needs to be an association between basic blocks of different functions?
+# Symbol table to associate basic block root with funciton identifiers
+# For example, the first basic block for all functions has been a function signature
+    # We would remove this node from the graph and instead opt for a symbol table to associate this basic block root with the function name found in the aformentioned signature
+    # Then enytime we visit/see a BB that is a function call, check to see if there is an entry in our symbol table for it
+    # if not exists then no further analysis
+    # if it does exist (we have a set of basic blocks for that function call), then we would further analyze that function (its set of basic blocks)
+
+
+#Maybe look into extending node class of network x to preserve statements as ast nodes
+
+
+# Keep in mind that the input here is the entire graph for a single function, of a single source file
+# In short -> Input graph = function graph
+#          -> Input function_name = the function invocation we are searching for within the graph
+#          -> Output = whether or not the function call was made within the input function's graph
+
+
+
+
+
+#####
+# This is going to take an input of the graph for one function call
+# Goal: Find whether or not the input function has a connected route from the entry node to the function call
+# Later extend this to explore the graphs of other functions that are called (?)
+# Could also be done by returning the specific basic block as a "yes" with another graph returned as a
+
+# Lets say main() makes a call to runner1() which makes another call to pthread_start()
+# We should look in main()'s graph and find the runner1() function
+# We should then explore runner1()
+# We should then see the FuncCall object in runner1
+# Then we should return (True, runner1)
+# This tells us that 1) the desired function that we were looking for (pthread_start()) is accessible from main
+#                    2) We can then look at runner1 for later when we want to see if there's a downstream pthread_join() from this point
+
+
+# Another appraoch (maybe the same lol)
+# We can identify the node within the graph that makes the call to pthread_create()
+# Then we can (using networkx) see the edges to predecessors
+# Then we can check all the way up the predecessor chain until we get back to a looping structure
+# In this looping structure, we can then check the bounds.
+# Relevant functions in networkx:
+#   1. reconstruct_path()
+#   2. digraph.predecessors() (page 68)p
