@@ -147,28 +147,16 @@ def __build_and_display_graph(bblist, limit_lines, func_name, file_name):
 
 
 if __name__ == "__main__":
-    ## Example usage -- commented out to avoid accidental use a live autograder ---
-
+    ## Example usage
     file_list = ["ctestfiles/test_finding_func.c"]
     graph_mapping = build_cfgs(file_list)
-    # single_graph = graph_mapping['test_finding_func.c']['runner1']
-    # response = graph_utils.func_contains('printf', single_graph)
-    # response2 = graph_utils.validate_thread_creation(single_graph)
+    all_tc_nodes = []
 
+    # Obtaining all of the parameters to do a search for pthread_create
+    main_cfg, all_cfgs, all_func_names = graph_utils.find_searching_params(graph_mapping)
 
-    #Store a list of all thread creation nodes amongst all of the functions which were analyzed
-    all_tc_nodes = {}
+    # Now looking for the pthread_create now that we have the necessary parameters
+    tc_nodes = graph_utils.find_pthread_create(main_cfg, all_cfgs, all_func_names)
 
-    #For each function of each file, call graph_utils.func_contains() method on them and store the results
-    # for i, file_name in enumerate(graph_mapping):
-    #     cfgs_curr_file = graph_mapping[file_name]
-    #     for func_name in cfgs_curr_file:
-    #         curr_func_cfg = cfgs_curr_file[func_name]
-    #         tc_nodes = graph_utils.validate_thread_creation(curr_func_cfg)
-    #         all_tc_nodes[func_name] = tc_nodes
-
-    tc_nodes = graph_utils.validate_thread_creation2(graph_mapping["test_finding_func.c"]['main'], graph_mapping['test_finding_func.c'], list(graph_mapping["test_finding_func.c"].keys()))
-
-
-    #Then create linkages between the two for exploration later.
+    #tc_nodes = graph_utils.find_pthread_create(graph_mapping["test_finding_func.c"]['main'], graph_mapping['test_finding_func.c'], list(graph_mapping["test_finding_func.c"].keys()))
     pass

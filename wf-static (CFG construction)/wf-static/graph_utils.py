@@ -56,3 +56,33 @@ Example function that finds all nodes that make a call to pthread_create()
 def find_pthread_create(main_cfg, all_cfgs, all_func_names):
     return find_all_nodes_for_func(main_cfg, all_cfgs, all_func_names, "pthread_create")
 
+'''
+Input: graph_mapping in the form of "graph_mapping[file_name] = list_of_functions"
+Output: tuple in the form of main_cfg, all_cfgs, all_func_names
+This gives you all of the arguments you need for find_all_nodes_for_func, except for the desire function name, which
+is up to you :)
+'''
+def find_searching_params(graph_mapping):
+    pass
+    all_cfgs = {}
+    main_cfg = None
+    all_func_names = []
+
+    for i, file_name in enumerate(graph_mapping):
+        cfgs_curr_file = graph_mapping[file_name]
+        for func_name in cfgs_curr_file:
+            curr_cfg = cfgs_curr_file[func_name]
+            #Collect all cfgs
+            #all_cfgs.append(curr_cfg)
+            all_cfgs[func_name] = curr_cfg
+
+            #Store the main cfg
+            if func_name == "main":
+                main_cfg = curr_cfg
+
+            #Collect all function names
+            all_func_names.append(func_name)
+
+    if main_cfg is None:
+        raise Exception("Program doesn't contain a main function, cannot do further analysis.")
+    return main_cfg, all_cfgs, all_func_names
