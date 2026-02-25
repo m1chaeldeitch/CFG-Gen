@@ -44,7 +44,7 @@ def find_all_nodes_for_func(cfg, all_cfgs, all_func_names, desired_func):
     for func in funcs_called:
         if func in all_func_names:
             curr_cfg = all_cfgs[func]
-            additional_nodes = find_all_nodes_for_func(curr_cfg, all_cfgs, all_func_names)
+            additional_nodes = find_all_nodes_for_func(curr_cfg, all_cfgs, all_func_names, desired_func)
             func_node.extend(additional_nodes)
             funcs_called.remove(func)
 
