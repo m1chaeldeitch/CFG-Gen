@@ -148,7 +148,7 @@ def __build_and_display_graph(bblist, limit_lines, func_name, file_name):
 
 if __name__ == "__main__":
     ## Example usage
-    file_list = ["ctestfiles/test_finding_func.c"]
+    file_list = ["ctestfiles/Driver.c", "ctestfiles/Image.c"]
     graph_mapping = build_cfgs(file_list)
     all_tc_nodes = []
 
@@ -156,7 +156,7 @@ if __name__ == "__main__":
     main_cfg, all_cfgs, all_func_names = graph_utils.find_searching_params(graph_mapping)
 
     # Now looking for the pthread_create now that we have the necessary parameters
+    # NOTE: Only works if the functions are uniquely named
+    # todo: See if there is a way to not be based on just the name
     tc_nodes = graph_utils.find_pthread_create(main_cfg, all_cfgs, all_func_names)
-
-    #tc_nodes = graph_utils.find_pthread_create(graph_mapping["test_finding_func.c"]['main'], graph_mapping['test_finding_func.c'], list(graph_mapping["test_finding_func.c"].keys()))
     pass
